@@ -25,7 +25,7 @@ def _smooth(r, rcut, sigma):
         Journal of Physics: Condensed Matter, 22(44), 445501.
     
     '''
-    if abs(sigma) < 1e-14:
+    if abs(sigma) < 1e-15:
         g = np.ones_like(r)
     else:
         g = 1. - np.exp(-0.5*((r-rcut)/sigma)**2)
@@ -149,7 +149,7 @@ class _TestRadial(unittest.TestCase):
     
     def test_build(self):
         from scipy.integrate import simpson
-        from fileio import read_param, read_nao
+        from orbio import read_param, read_nao
 
         param = read_param('./testfiles/ORBITAL_RESULTS.txt')
         nao = read_nao('./testfiles/In_gga_10au_100Ry_3s3p3d2f.orb')

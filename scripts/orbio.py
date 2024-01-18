@@ -270,7 +270,8 @@ def write_param(fpath, coeff, rcut, sigma, elem):
 import os
 import unittest
 
-class _TestFileio(unittest.TestCase):
+class _TestOrbIO(unittest.TestCase):
+
     def test_read_param(self):
         param = read_param('./testfiles/ORBITAL_RESULTS.txt')
     
@@ -322,7 +323,6 @@ class _TestFileio(unittest.TestCase):
         self.assertAlmostEqual(chi[2][2][1], 6.64420946004809e-05)
         self.assertAlmostEqual(chi[3][1][4], -1.08612755666000e-04)
 
-    
     
     def test_write_nao(self):
         nao = read_nao('./testfiles/In_gga_10au_100Ry_3s3p3d2f.orb')

@@ -160,10 +160,11 @@ def read_stru(fpath):
 import unittest
 import os
 
-class _TestSTRUGen(unittest.TestCase):
+class _TestStruIO(unittest.TestCase):
+
     def test_write_stru(self):
 
-        fpath = './testfiles'
+        jobdir = './testfiles/'
 
         species = [
                 {'symbol':'Si', 'mass':28.0   , 'pp_file':'Si.upf', 'pp_type':'upf201' },
@@ -234,7 +235,8 @@ class _TestSTRUGen(unittest.TestCase):
                      }
                  ]
 
-        write_stru(fpath, species, lattice, atoms, orbitals)
+        write_stru(jobdir, species, lattice, atoms, orbitals)
+        os.remove(jobdir + '/STRU')
 
 
 ############################################################

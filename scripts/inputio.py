@@ -380,28 +380,22 @@ KEY                             # empty value is also allowed!
 
 '''
 _input_pattern  = re.compile(r'([^ ]+)([ \t]+)([^#]*[^ #]|)(#.*)?')
-
-def _check_keys(input_keys):
-    '''
-    Checks if the input keywords are valid.
-
-    '''
-    valid_keys = [re.search(_input_pattern, line).group(1) \
-            for line in _INPUT_DEFAULT.split('\n')[1:] if line.strip() != '' and line.lstrip()[0] != '#' ]
-    assert all(key in valid_keys for key in input_keys), 'Invalid INPUT keywords.'
+_valid_keys = [re.search(_input_pattern, line).group(1) \
+        for line in _INPUT_DEFAULT.split('\n')[1:] if line.strip() != '' and line.lstrip()[0] != '#' ]
 
 
 def write_input(job_dir, **kwargs):
     '''
-    Writes an INPUT file to the job directory.
+    Writes an INPUT file to the specified directory.
 
     '''
-    _check_keys(kwargs.keys())
+    assert all(key in _valid_keys for key in kwargs.keys()), 'Invalid INPUT keywords.'
+
     key_width = max([len(key) for key in kwargs.keys()])
     with open(job_dir+'/INPUT', 'w') as f:
         f.write('INPUT_PARAMETERS\n')
-        for key in kwargs:
-            f.write('{key:<{width}}    {value}\n'.format(key=key, value=kwargs[key], width=key_width))
+        for key, value in kwargs.items():
+            f.write('{key:<{width}}    {value}\n'.format(key=key, value=value, width=key_width))
 
 
 def read_input(fpath):
@@ -414,17 +408,15 @@ def read_input(fpath):
 
     '''
     with open(fpath, 'r') as f:
-        inputs = f.read()
-    inputs = inputs.split('\n')
-
-    # checks if the first line is 'INPUT_PARAMETERS'
+        inputs = f.read().split('\n')
     assert inputs[0].strip() == 'INPUT_PARAMETERS', 'Invalid INPUT file.'
 
     inputs = dict([re.search(_input_pattern, line).group(1, 3) \
             for line in inputs[1:] if line.strip() != '' and line.lstrip()[0] != '#' ])
+    assert all(key in _valid_keys for key in inputs.keys()), 'Invalid INPUT keywords.'
 
-    _check_keys(inputs.keys())
     return inputs
+
 
 ############################################################
 #                       Test
@@ -432,7 +424,7 @@ def read_input(fpath):
 import unittest
 import os
 
-class _TestINPUTGen(unittest.TestCase):
+class _TestInputIO(unittest.TestCase):
 
     def test_write_input(self):
         write_input('./testfiles',
@@ -450,6 +442,7 @@ class _TestINPUTGen(unittest.TestCase):
 
         os.remove('./testfiles/INPUT')
 
+
     def test_read_input(self):
         inputs = read_input('./testfiles/INPUT.test')
 
@@ -457,6 +450,7 @@ class _TestINPUTGen(unittest.TestCase):
         self.assertEqual(inputs['scf_nmax'], '100')
         self.assertEqual(inputs['orbital_dir'], './testfiles')
         self.assertEqual(inputs['kspacing'], '0.1 0.1 0.1')
+
 
 ############################################################
 #                       Main

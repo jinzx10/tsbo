@@ -49,26 +49,73 @@ def grep_energy(jobdir, suffix='ABACUS'):
 import unittest
 import shutil
 import os
+from pathlib import Path
+from inputio import write_input
+from struio import write_stru
 
 class TestShellTask(unittest.TestCase):
+
     def test_xabacus_and_grep(self):
         abacus_path = '/home/zuxin/abacus-develop/bin/abacus'
-        jobdir = './testfiles/In2/'
-        suffix = 'ABACUS'
+        jobdir = './testfiles/tmp/'
+        suffix = 'In2'
+        Path(jobdir).mkdir(parents=True, exist_ok=True)
+
+        write_input(jobdir,
+                    calculation='scf',
+                    suffix=suffix,
+                    ecutwfc=50.0,
+                    scf_thr=1.0e-8,
+                    pseudo_dir='../', 
+                    orbital_dir='../',
+                    basis_type='lcao',
+                    gamma_only=1,
+                    )
+
+        species = [
+                {'symbol': 'In', 'mass': 1.0, 'pp_file':'In_ONCV_PBE-1.0.upf'},
+                ]
+
+        orbitals = [
+                'In_gga_10au_100Ry_3s3p3d2f.orb',
+                ]
+
+        lattice = {
+                'latconst': 20.0,
+                'latvec': [
+                            [1.0, 0.0, 0.0],
+                            [0.0, 1.0, 0.0],
+                            [0.0, 0.0, 1.0],
+                            ],
+                }
+
+        atoms = ['Cartesian_angstrom',
+                 {
+                    'In': {'mag_each': 0.0,
+                            'num': 2,
+                            'coord': [
+                                [0.0, 0.0, 0.0],
+                                [0.0, 0.0, 3.5],
+                                ],
+                           },
+                    }
+                 ]
+
+        write_stru(jobdir, species, lattice, atoms, orbitals)
+
         nthreads = 2
         nprocs = 4
         stdout = subprocess.DEVNULL
         #stdout = None
         stderr = subprocess.DEVNULL
 
-        shutil.rmtree(jobdir + '/OUT.%s'%(suffix), ignore_errors=True)
         xabacus(abacus_path, jobdir, nthreads, nprocs, stdout, stderr)
-        self.assertTrue(os.path.exists(jobdir + '/OUT.%s'%(suffix)))
         self.assertTrue(os.path.exists(jobdir + '/OUT.%s/running_scf.log'%(suffix)))
 
         energy = grep_energy(jobdir, suffix)
-        self.assertTrue(abs(energy - (-2913.0)) < 1.0)
-        shutil.rmtree(jobdir + '/OUT.%s'%(suffix), ignore_errors=True)
+        self.assertTrue(abs(energy - (-2912.92846754)) < 1e-7)
+        shutil.rmtree(jobdir, ignore_errors=True)
+
 
 if __name__ == '__main__':
     unittest.main()
