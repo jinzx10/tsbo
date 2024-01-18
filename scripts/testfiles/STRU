@@ -1,0 +1,38 @@
+ATOMIC_SPECIES
+Si     28.0              Si.upf  upf201
+C       1.0               C.upf  upf100
+O   32.1233  O_ONCV_PBE-1.0.upf        
+
+NUMERICAL_ORBITAL
+Si_2s2p1d.orb
+C_gga_7au_100Ry.orb
+O_gga_7au_100Ry.orb
+
+LATTICE_CONSTANT
+20.0
+
+LATTICE_VECTORS
+1.0 0.0 0.0
+0.0 1.0 0.0
+0.0 0.0 1.0
+
+ATOMIC_POSITIONS
+Cartesian_angstrom
+
+In
+0.0
+2
+0.0 0.0 0.0 m 1.0 1.0 1.0 v 0.0 0.0 -1.0 mag 0.0 0.0 1.0
+0.0 0.0 1.0 m 1.0 1.0 1.0 v 0.0 0.0 1.0 mag 1.0 angle1 90.0 angle2 180.0
+
+C
+0.0
+1
+0.0 0.0 0.0
+
+O
+1.0
+3
+0.0 0.0 0.0 mag 1.0 angle1 -72.0 angle2 36.0
+0.0 0.0 0.0 m 1.0 1.0 1.0
+0.0 0.0 0.0 mag 1.0 1.0 -1.0
