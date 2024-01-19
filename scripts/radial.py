@@ -34,31 +34,6 @@ def _smooth(r, rcut, sigma):
     return g
 
 
-def _qgen(coeff, rcut):
-    '''
-    Wave numbers of spherical Bessel functions.
-
-    This function generates wave numbers for spherical Bessel functions according to
-    the given cutoff radius and coeff such that spherical_jn(l, coeff[l]*rcut) is zero.
-
-    Parameters
-    ----------
-        coeff : list of list of list of float
-            A nested list containing the coefficients of spherical Bessel functions.
-        rcut : int or float
-            Cutoff radius.
-
-    Returns
-    -------
-        q : list of list of list of float
-            A nested list containing the wave numbers of spherical Bessel functions.
-
-    '''
-    from jlzeros import ikebe
-    zeros = [ikebe(l, max([len(clz) for clz in cl])) for l, cl in enumerate(coeff)]
-    return [[zeros[l][:len(clz)] / rcut for clz in cl] for l, cl in enumerate(coeff)]
-
-
 def build(coeff, rcut, dr, sigma, orth=False):
     '''
     Builds a set of numerical radial functions by linear combinations of spherical Bessel functions.
@@ -66,7 +41,7 @@ def build(coeff, rcut, dr, sigma, orth=False):
     Parameters
     ----------
         coeff : list of list of list of float
-            A nested list containing the coefficients of spherical Bessel functions.
+            A nested list of spherical Bessel coefficients organized as coeff[l][zeta][iq].
         rcut : int or float
             Cutoff radius.
         dr : float
@@ -74,12 +49,13 @@ def build(coeff, rcut, dr, sigma, orth=False):
         sigma : float
             Smoothing parameter.
         orth : bool
-            Whether to orthogonalize the radial functions.
+            Whether to orthogonalize the radial functions. If True, radial functions
+            will no longer be consistent with the given spherical Bessel coefficients.
     
     Returns
     -------
         chi : list of list of array of float
-            A nested list containing the numerical radial functions.
+            A nested list of numerical radial functions organized as chi[l][zeta][ir].
 
         r : array of float
             Radial grid.
@@ -87,29 +63,23 @@ def build(coeff, rcut, dr, sigma, orth=False):
     '''
     from scipy.integrate import simpson
     from scipy.special import spherical_jn
+    from jlzeros import ikebe
 
-    lmax = len(coeff)-1
-    nzeta = [len(coeff[l]) for l in range(lmax+1)]
-
-    nr = int(rcut/dr) + 1
-    r = dr * np.arange(nr)
-
+    r = dr * np.arange(int(rcut/dr) + 1)
     g = _smooth(r, rcut, sigma)
-    q = _qgen(coeff, rcut)
+    q = [ikebe(l, max(len(clz) for clz in cl)) / rcut for l, cl in enumerate(coeff)] # wave numbers
 
-    chi = [[np.zeros(nr) for _ in range(nzeta[l])] for l in range(lmax+1)]
-    for l in range(lmax+1):
-        for zeta in range(nzeta[l]):
-            for iq in range(len(coeff[l][zeta])):
-                chi[l][zeta] += coeff[l][zeta][iq] * spherical_jn(l, q[l][zeta][iq]*r)
+    chi = [[None for _ in coeff_l] for coeff_l in coeff]
+    for l, coeff_l in enumerate(coeff):
+        for zeta, coeff_lz in enumerate(coeff_l):
 
-            chi[l][zeta] = chi[l][zeta] * g # smooth the tail
+            chi[l][zeta] = sum(coeff_lzq * spherical_jn(l, q[l][iq]*r) for iq, coeff_lzq in enumerate(coeff_lz))
+            chi[l][zeta] *= g
 
-            if orth:
-                for y in range(zeta):
-                    chi[l][zeta] -= simpson(r**2 * chi[l][zeta] * chi[l][y], dx=dr) * chi[l][y]
+            if orth: # Gram-Schmidt
+                chi[l][zeta] -= sum(simpson(r**2 * chi[l][zeta] * chi[l][y], r) * chi[l][y] for y in range(zeta))
 
-            chi[l][zeta] *= 1./np.sqrt(simpson((r*chi[l][zeta])**2, dx=dr)) # normalize
+            chi[l][zeta] *= 1. / np.sqrt(simpson((r*chi[l][zeta])**2, r)) # normalize
 
     return chi, r
 
@@ -133,18 +103,6 @@ class _TestRadial(unittest.TestCase):
         g = _smooth(r, rcut, sigma)
         self.assertTrue(np.all(g[r < rcut] == 1.0 - np.exp(-0.5*((r[r < rcut]-rcut)/sigma)**2)))
         self.assertTrue(np.all(g[r >= rcut] == 0.0))
-    
-    
-    def test_qgen(self):
-        from scipy.special import spherical_jn
-    
-        rcut = 7.0
-        coeff = [[[1.0]*5, [1.0]*3], [[1.0]*7], [[1.0]*8, [1.0]*4, [1.0]*2]]
-        q = _qgen(coeff, rcut)
-        for l, ql in enumerate(q):
-            for zeta, qlz in enumerate(ql):
-                self.assertEqual(len(qlz), len(coeff[l][zeta]))
-                self.assertTrue(np.all(np.abs(spherical_jn(l, qlz * rcut)) < 1e-14))
     
     
     def test_build(self):
